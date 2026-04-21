@@ -1,7 +1,7 @@
-# Sử dụng bản PHP 8.3 mới nhất để khớp với Laravel 13
-FROM richarvey/nginx-php-fpm:php83-latest
+FROM richarvey/nginx-php-fpm:latest
 
-# Cho phép chạy Composer với quyền cao nhất để không bị chặn
+# ÉP NÓ DÙNG PHP 8.3
+ENV PHP_VERSION 8.3
 ENV COMPOSER_ALLOW_SUPERUSER=1
 
 COPY . .
@@ -11,8 +11,8 @@ ENV WEBROOT /var/www/html/public
 ENV PHP_ERRORS_STDERR 1
 ENV run_scripts 1
 
-# Cài đặt thư viện và bỏ qua kiểm tra môi trường khắt khe
+# Cài đặt thư viện (thêm lệnh update để nó nhận diện môi trường mới)
 RUN composer install --no-dev --optimize-autoloader --ignore-platform-reqs
 
-# Cấp quyền cho các folder quan trọng
+# Cấp quyền
 RUN chmod -R 775 storage bootstrap/cache
