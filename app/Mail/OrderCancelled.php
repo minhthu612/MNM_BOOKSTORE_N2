@@ -5,33 +5,29 @@ namespace App\Mail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Auth;
 
 class OrderCancelled extends Mailable
 {
     use Queueable, SerializesModels;
 
     public $order;
+    public $user;
 
-    /**
-     * Create a new message instance.
-     */
     public function __construct($order)
     {
         $this->order = $order;
+        $this->user = Auth::user(); // Lấy user hiện tại
     }
 
-    /**
-     * Build the message.
-     */
     public function build()
     {
-        // Gửi đến view emails.order với các câu chữ thông báo hủy
-        return $this->subject('Thông báo hủy đơn hàng #' . $this->order->order_id)
+        return $this->subject('Xác nhận hủy đơn hàng #' . $this->order->order_id)
                     ->view('emails.order')
                     ->with([
-                        'title' => 'ĐƠN HÀNG ĐÃ HỦY',
-                        'content' => 'Chúng tôi xác nhận đơn hàng',
-                        'content_suffix' => 'đã được hủy thành công theo yêu cầu của bạn.'
+                        'title' => 'ĐƠN HÀNG ĐÃ HỦY THÀNH CÔNG',
+                        'content' => 'Chào ' . $this->user->fullname . ', chúng tôi xác nhận đơn hàng',
+                        'content_suffix' => 'đã được hủy theo yêu cầu của bạn.'
                     ]);
     }
 }

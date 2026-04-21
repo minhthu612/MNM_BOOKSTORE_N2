@@ -9,7 +9,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\OrderAddressUpdated;
 use App\Mail\OrderCancelled;
-use App\Models\Order; // Đảm bảo đã import Model
+use App\Mail\AdminOrderCancelled; // Import Mail mới cho Admin
+use App\Models\Order; 
 use Carbon\Carbon;
 
 class OrderController extends Controller
@@ -138,15 +139,16 @@ class OrderController extends Controller
     }
 
     // ========================
-    // 5. HỦY ĐƠN HÀNG (BẢN FIX GỬI MAIL)
+    // 5. HỦY ĐƠN HÀNG (GỬI MAIL KHÁCH & ADMIN)
     // ========================
     public function cancel($id)
     {
-        $user_id = Auth::id();
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
 
-        // Sử dụng Model Order thay vì DB::table để có thể dùng load() quan hệ
+        // Sử dụng Model Order để nạp quan hệ phục vụ gửi mail
         $order = Order::where('order_id', $id)
-            ->where('user_id', $user_id)
+            ->where('user_id', $user->user_id)
             ->first();
 
         if (!$order) {
@@ -157,26 +159,31 @@ class OrderController extends Controller
             return redirect()->route('orders.show', $id)->with('error', 'Không thể hủy đơn hàng ở trạng thái này!');
         }
 
-        // Thực hiện cập nhật trạng thái đơn hàng thành 'cancelled'
+        // Cập nhật trạng thái đơn hàng
         $order->update([
             'status' => 'cancelled',
             'updated_at' => now()
         ]);
 
-        // THỰC HIỆN GỬI MAIL THÔNG BÁO HỦY
+        // THỰC HIỆN GỬI MAIL
         try {
-            $userEmail = Auth::user()->email;
-            if ($userEmail) {
-                // QUAN TRỌNG: Nạp quan hệ để view emails.order không bị lỗi khi lặp qua orderDetails
-                $order->load(['orderDetails.book', 'user']);
-                
-                Mail::to($userEmail)->send(new OrderCancelled($order));
+            // Nạp quan hệ để view email có đủ dữ liệu lặp qua sản phẩm
+            $order->load(['orderDetails.book', 'user']);
+
+            // 1. Gửi mail cho KHÁCH HÀNG
+            if ($user->email) {
+                Mail::to($user->email)->send(new OrderCancelled($order));
             }
+
+            // 2. Gửi mail cho ADMIN
+            $adminEmail = 'admin@yourbookstore.com'; // THAY EMAIL ADMIN CỦA BẠN VÀO ĐÂY
+            Mail::to($adminEmail)->send(new AdminOrderCancelled($order, $user));
+
         } catch (\Exception $e) {
-            \Log::error("Gửi mail hủy đơn #" . $id . " thất bại: " . $e->getMessage());
+            \Log::error("Lỗi gửi mail khi hủy đơn #" . $id . ": " . $e->getMessage());
         }
 
         return redirect()->route('orders.show', $id)
-            ->with('success', 'Đã hủy đơn hàng thành công và gửi mail xác nhận!');
+            ->with('success', 'Đã hủy đơn hàng và gửi thông báo cho quản trị viên!');
     }
 }

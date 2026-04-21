@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
+use Illuminate\Support\Facades\File;
 
 class ProfileController extends Controller
 {
@@ -18,9 +19,10 @@ class ProfileController extends Controller
         return view('client.profile', compact('user', 'tab'));
     }
 
-    // ===== UPDATE INFO =====
+    // ===== UPDATE INFO & AVATAR =====
     public function update(Request $request)
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
 
         // Check email trùng (trừ chính mình ra)
@@ -32,15 +34,51 @@ class ProfileController extends Controller
             return back()->with('error', 'Email này đã có người khác sử dụng rồi!');
         }
 
-        // Cập nhật đúng các cột trong DB của ông
-        $user->update([
-            'fullname' => $request->fullname,
-            'email'    => $request->email,
-            'phone'    => $request->phone,
-        ]);
+        // Xử lý Upload Ảnh
+        if ($request->hasFile('avatar')) {
+            // Xóa ảnh cũ nếu có
+            if ($user->avatar && File::exists(public_path('uploads/avatars/' . $user->avatar))) {
+                File::delete(public_path('uploads/avatars/' . $user->avatar));
+            }
+
+            // Lưu ảnh mới
+            $file = $request->file('avatar');
+            $fileName = time() . '_' . $user->user_id . '.' . $file->getClientOriginalExtension();
+            $file->move(public_path('uploads/avatars'), $fileName);
+            
+            // Cập nhật tên file vào model
+            $user->avatar = $fileName;
+        }
+
+        // Cập nhật các thông tin khác
+        $user->fullname = $request->fullname;
+        $user->email = $request->email;
+        $user->phone = $request->phone;
+        $user->save();
 
         return redirect()->to('/profile?tab=info')
             ->with('success', 'Đã lưu thay đổi thông tin cá nhân!');
+    }
+
+    // ===== DELETE AVATAR =====
+    public function deleteAvatar()
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        if ($user->avatar) {
+            // Xóa file vật lý
+            if (File::exists(public_path('uploads/avatars/' . $user->avatar))) {
+                File::delete(public_path('uploads/avatars/' . $user->avatar));
+            }
+            // Xóa tên file trong DB
+            $user->avatar = null;
+            $user->save();
+
+            return back()->with('success', 'Đã xóa ảnh đại diện!');
+        }
+
+        return back()->with('error', 'Bạn chưa có ảnh đại diện để xóa');
     }
 
     // ===== CHANGE PASSWORD =====
@@ -50,7 +88,7 @@ class ProfileController extends Controller
         $user = Auth::user();
 
         // Check mật khẩu cũ (Laravel dùng hàm getAuthPassword đã định nghĩa ở Model)
-        if (    !Hash::check($request->current_password, $user->password_hashed) && $request->current_password !== $user->PASSWORD) {
+        if (!Hash::check($request->current_password, $user->password_hashed) && $request->current_password !== $user->PASSWORD) {
             return back()->with('error', 'Mật khẩu hiện tại bạn nhập không đúng');
         }
 
@@ -65,7 +103,6 @@ class ProfileController extends Controller
         }
 
         // Update cả 2 cột mật khẩu cho chắc ăn như ông muốn
-        // Trong hàm changePassword
         $user->password_hashed = Hash::make($request->new_password);
         $user->PASSWORD = $request->new_password;
         $user->save();

@@ -95,6 +95,9 @@
     <a href="{{ route('admin.reviews.index') }}" class="{{ Request::is('admin/reviews*') ? 'active' : '' }}">
         <i class="fas fa-star me-2"></i> Đánh giá
     </a>
+    <a href="{{ route('admin.coupons.index') }}" class="{{ Request::is('admin/coupons*') ? 'active' : '' }}">
+        <i class="fas fa-ticket-alt me-2"></i> Coupon
+    </a>
 
     <div class="mt-auto p-3">
         <form method="POST" action="{{ route('logout') }}">

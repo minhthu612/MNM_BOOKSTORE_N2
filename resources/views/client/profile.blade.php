@@ -5,7 +5,16 @@
     body { background:#f5f7fb; }
     .profile-box { background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.06); margin-top: 30px;}
     .profile-header { background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; text-align:center; padding:40px 20px; }
-    .avatar { width:90px; height:90px; border-radius:50%; background:#fff; color:#667eea; display:flex; align-items:center; justify-content:center; font-size:38px; margin:0 auto 10px; border:4px solid rgba(255,255,255,0.3); }
+    
+    /* Avatar Styles */
+    .avatar-wrapper { position: relative; width: 100px; margin: 0 auto 10px; }
+    .avatar { width:100px; height:100px; border-radius:50%; background:#fff; color:#667eea; display:flex; align-items:center; justify-content:center; font-size:38px; border:4px solid rgba(255,255,255,0.3); object-fit: cover; overflow: hidden; }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; }
+    
+    /* Nút xóa ảnh */
+    .delete-avatar { position: absolute; top: 0; right: -5px; background: #ff4d4d; color: white; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 12px; border: 2px solid #fff; cursor: pointer; text-decoration: none; transition: 0.3s; z-index: 10; }
+    .delete-avatar:hover { background: #cc0000; color: #fff; transform: scale(1.1); }
+
     .tab-menu { display:flex; border-bottom:2px solid #eee; }
     .tab-menu a { padding:12px 18px; text-decoration:none; font-weight:600; color:#666; border-bottom:3px solid transparent; }
     .tab-menu a.active { color:#667eea; border-bottom:3px solid #667eea; }
@@ -20,7 +29,22 @@
             <div class="profile-box">
                 {{-- HEADER --}}
                 <div class="profile-header">
-                    <div class="avatar"><i class="fas fa-user"></i></div>
+                    <div class="avatar-wrapper">
+                        <div class="avatar" id="avatarContainer">
+                            @if($user->avatar)
+                                <img src="{{ asset('uploads/avatars/'.$user->avatar) }}" id="avatarPreview" alt="Avatar">
+                            @else
+                                <div id="avatarPlaceholder"><i class="fas fa-user"></i></div>
+                                <img src="" id="avatarPreview" alt="Avatar" style="display:none;">
+                            @endif
+                        </div>
+                        {{-- Nút xóa ảnh đại diện --}}
+                        @if($user->avatar)
+                            <a href="{{ url('/profile/delete-avatar') }}" class="delete-avatar" onclick="return confirm('Bạn có chắc chắn muốn xóa ảnh đại diện này không?')" title="Xóa ảnh">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        @endif
+                    </div>
                     <h4 class="mb-0">{{ $user->fullname }}</h4>
                     <small>{{ $user->role ?? 'Khách hàng thành viên' }}</small>
                 </div>
@@ -46,9 +70,14 @@
 
                     {{-- TAB INFO --}}
                     @if($tab == 'info')
-                    <form method="POST" action="{{ url('/profile/update') }}">
+                    <form method="POST" action="{{ url('/profile/update') }}" enctype="multipart/form-data">
                         @csrf
                         <div class="row g-3">
+                            <div class="col-md-12 mb-2">
+                                <label class="fw-bold small mb-1">Thay đổi ảnh đại diện</label>
+                                <input type="file" name="avatar" id="avatarInput" class="form-control input" accept="image/*">
+                                <div class="form-text mt-1 small text-muted">Hỗ trợ định dạng: JPG, PNG, GIF.</div>
+                            </div>
                             <div class="col-md-6">
                                 <label class="fw-bold small mb-1">Họ tên</label>
                                 <input name="fullname" class="form-control input" value="{{ $user->fullname }}" required>
@@ -102,4 +131,25 @@
         </div>
     </div>
 </div>
+
+{{-- SCRIPT XỬ LÝ XEM TRƯỚC ẢNH --}}
+<script>
+    document.getElementById('avatarInput').addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.getElementById('avatarPreview');
+                const placeholder = document.getElementById('avatarPlaceholder');
+                
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+                if (placeholder) {
+                    placeholder.style.display = 'none';
+                }
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+</script>
 @endsection

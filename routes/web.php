@@ -24,6 +24,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
     Route::post('/profile/update', [ProfileController::class, 'update']);
     Route::post('/profile/password', [ProfileController::class, 'changePassword']);
+    Route::get('/profile/delete-avatar', [ProfileController::class, 'deleteAvatar']);
 
     // Cart
     Route::prefix('client/cart')->group(function () {
@@ -151,4 +152,17 @@ Route::middleware([\App\Http\Middleware\CheckAdmin::class])->prefix('admin')->na
         Route::get('/edit/{id}', [InventoryController::class, 'edit'])->name('edit');
         Route::post('/update/{id}', [InventoryController::class, 'update'])->name('update');
     });
-});
+
+// ... các route admin khác bên trên giữ nguyên
+
+    // Coupons - ĐÃ SỬA TÊN VÀ ĐƯỜNG DẪN CHUẨN
+    Route::prefix('coupons')->name('coupons.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\CouponController::class, 'index'])->name('index');
+        Route::get('/create', [App\Http\Controllers\Admin\CouponController::class, 'create'])->name('create');
+        Route::post('/store', [App\Http\Controllers\Admin\CouponController::class, 'store'])->name('store');
+        Route::get('/edit/{id}', [App\Http\Controllers\Admin\CouponController::class, 'edit'])->name('edit');
+        Route::post('/update/{id}', [App\Http\Controllers\Admin\CouponController::class, 'update'])->name('update');
+        Route::get('/delete/{id}', [App\Http\Controllers\Admin\CouponController::class, 'delete'])->name('delete');
+    });
+
+}); // Đóng group Admin
